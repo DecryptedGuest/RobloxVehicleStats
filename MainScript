@@ -3,7 +3,7 @@ local Rayfield = loadstring(game:HttpGet("https://sirius.menu/rayfield"))()
 local Window = Rayfield:CreateWindow({
 	Name = "Universal Vehicle Script",
 	LoadingTitle = "Universal Vehicle Script",
-	LoadingSubtitle = "Modern UI",
+	LoadingSubtitle = "Loading User Interface...",
 	ConfigurationSaving = { Enabled = false },
 	KeySystem = false
 })
@@ -37,10 +37,21 @@ SettingsTab:CreateToggle({
 	end
 })
 
+-- Minimise button
 SettingsTab:CreateButton({
 	Name = "-  Minimise",
 	Callback = function()
+		-- Save current position
+		local savedPosition = Window.Main.Position
 		Rayfield:ToggleUI()
+		-- Restore position after unhide
+		local connection
+		connection = RunService.RenderStepped:Connect(function()
+			if Window.Main.Visible then
+				Window.Main.Position = savedPosition
+				connection:Disconnect()
+			end
+		end)
 	end
 })
 
