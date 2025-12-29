@@ -1,0 +1,208 @@
+local Rayfield = loadstring(game:HttpGet("https://sirius.menu/rayfield"))()
+
+local Window = Rayfield:CreateWindow({
+	Name = "Universal Vehicle Script",
+	LoadingTitle = "Universal Vehicle Script",
+	LoadingSubtitle = "Modern UI",
+	ConfigurationSaving = {
+		Enabled = false
+	},
+	Discord = {
+		Enabled = true,
+		Invite = "ENHYznSPmM",
+		RememberJoins = false
+	},
+	KeySystem = false
+})
+
+--// Services
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+local LocalPlayer = Players.LocalPlayer
+
+--// Helpers
+local function GetVehicleFromDescendant(Descendant)
+	return
+		Descendant:FindFirstAncestor(LocalPlayer.Name .. "'s Car") or
+		(Descendant:FindFirstAncestor("Body") and Descendant:FindFirstAncestor("Body").Parent) or
+		(Descendant:FindFirstAncestor("Misc") and Descendant:FindFirstAncestor("Misc").Parent) or
+		Descendant:FindFirstAncestorWhichIsA("Model")
+end
+
+--// Vehicle Tab
+local VehicleTab = Window:CreateTab("Vehicle", 4483362458)
+
+-- Usage
+local velocityEnabled = true
+VehicleTab:CreateToggle({
+	Name = "Keybinds Active",
+	CurrentValue = true,
+	Callback = function(v)
+		velocityEnabled = v
+	end
+})
+
+-- Flight
+local flightEnabled = false
+local flightSpeed = 1
+
+VehicleTab:CreateToggle({
+	Name = "Flight Enabled",
+	CurrentValue = false,
+	Callback = function(v)
+		flightEnabled = v
+	end
+})
+
+VehicleTab:CreateSlider({
+	Name = "Flight Speed",
+	Range = {0, 800},
+	Increment = 10,
+	CurrentValue = 100,
+	Callback = function(v)
+		flightSpeed = v / 100
+	end
+})
+
+local defaultCharacterParent
+
+RunService.Stepped:Connect(function()
+	local Character = LocalPlayer.Character
+	if flightEnabled and Character then
+		local Humanoid = Character:FindFirstChildWhichIsA("Humanoid")
+		if Humanoid and Humanoid.SeatPart and Humanoid.SeatPart:IsA("VehicleSeat") then
+			local SeatPart = Humanoid.SeatPart
+			local Vehicle = GetVehicleFromDescendant(SeatPart)
+			if Vehicle then
+				Character.Parent = Vehicle
+				Vehicle.PrimaryPart = Vehicle.PrimaryPart or SeatPart
+				local cf = Vehicle.PrimaryPart.CFrame
+				local move = Vector3.new(
+					(UserInputService:IsKeyDown(Enum.KeyCode.D) and flightSpeed) or (UserInputService:IsKeyDown(Enum.KeyCode.A) and -flightSpeed) or 0,
+					(UserInputService:IsKeyDown(Enum.KeyCode.E) and flightSpeed/2) or (UserInputService:IsKeyDown(Enum.KeyCode.Q) and -flightSpeed/2) or 0,
+					(UserInputService:IsKeyDown(Enum.KeyCode.S) and flightSpeed) or (UserInputService:IsKeyDown(Enum.KeyCode.W) and -flightSpeed) or 0
+				)
+				Vehicle:SetPrimaryPartCFrame(
+					CFrame.new(cf.Position, cf.Position + workspace.CurrentCamera.CFrame.LookVector) * CFrame.new(move)
+				)
+				SeatPart.AssemblyLinearVelocity = Vector3.zero
+				SeatPart.AssemblyAngularVelocity = Vector3.zero
+			end
+		end
+	else
+		if Character then
+			Character.Parent = defaultCharacterParent or Character.Parent
+			defaultCharacterParent = Character.Parent
+		end
+	end
+end)
+
+-- Acceleration
+local velocityMult = 0.025
+VehicleTab:CreateSlider({
+	Name = "Acceleration Multiplier",
+	Range = {0, 50},
+	Increment = 1,
+	CurrentValue = 25,
+	Callback = function(v)
+		velocityMult = v / 1000
+	end
+})
+
+VehicleTab:CreateKeybind({
+	Name = "Accelerate",
+	CurrentKeybind = "W",
+	HoldToInteract = true,
+	Callback = function()
+		if not velocityEnabled then return end
+		while UserInputService:IsKeyDown(Enum.KeyCode.W) do
+			task.wait()
+			local Humanoid = LocalPlayer.Character and LocalPlayer.Character:FindFirstChildWhichIsA("Humanoid")
+			if Humanoid and Humanoid.SeatPart then
+				Humanoid.SeatPart.AssemblyLinearVelocity *= Vector3.new(1 + velocityMult, 1, 1 + velocityMult)
+			end
+		end
+	end
+})
+
+-- Deceleration
+local brakeMult = 0.15
+VehicleTab:CreateSlider({
+	Name = "Brake Strength",
+	Range = {0, 300},
+	Increment = 5,
+	CurrentValue = 150,
+	Callback = function(v)
+		brakeMult = v / 1000
+	end
+})
+
+VehicleTab:CreateKeybind({
+	Name = "Quick Brake",
+	CurrentKeybind = "S",
+	HoldToInteract = true,
+	Callback = function()
+		if not velocityEnabled then return end
+		while UserInputService:IsKeyDown(Enum.KeyCode.S) do
+			task.wait()
+			local Humanoid = LocalPlayer.Character and LocalPlayer.Character:FindFirstChildWhichIsA("Humanoid")
+			if Humanoid and Humanoid.SeatPart then
+				Humanoid.SeatPart.AssemblyLinearVelocity *= Vector3.new(1 - brakeMult, 1, 1 - brakeMult)
+			end
+		end
+	end
+})
+
+VehicleTab:CreateKeybind({
+	Name = "Full Stop",
+	CurrentKeybind = "P",
+	HoldToInteract = false,
+	Callback = function()
+		local Humanoid = LocalPlayer.Character and LocalPlayer.Character:FindFirstChildWhichIsA("Humanoid")
+		if Humanoid and Humanoid.SeatPart then
+			Humanoid.SeatPart.AssemblyLinearVelocity = Vector3.zero
+			Humanoid.SeatPart.AssemblyAngularVelocity = Vector3.zero
+		end
+	end
+})
+
+-- Springs
+VehicleTab:CreateToggle({
+	Name = "Show Springs",
+	CurrentValue = false,
+	Callback = function(v)
+		local Humanoid = LocalPlayer.Character and LocalPlayer.Character:FindFirstChildWhichIsA("Humanoid")
+		if Humanoid and Humanoid.SeatPart then
+			local Vehicle = GetVehicleFromDescendant(Humanoid.SeatPart)
+			for _, s in ipairs(Vehicle:GetDescendants()) do
+				if s:IsA("SpringConstraint") then
+					s.Visible = v
+				end
+			end
+		end
+	end
+})
+
+-- Game specific tabs (unchanged logic)
+if game.PlaceId == 3351674303 then
+	local Wayfort = Window:CreateTab("Wayfort", 4483362458)
+	local list = {}
+	for _, v in ipairs(workspace.Game.Dealerships.Dealerships:GetChildren()) do
+		table.insert(list, v.Name)
+	end
+	Wayfort:CreateDropdown({
+		Name = "Dealership Teleport",
+		Options = list,
+		Callback = function(v)
+			game.ReplicatedStorage.Remotes.Location:FireServer("Enter", v)
+		end
+	})
+end
+
+-- UI toggle
+UserInputService.InputBegan:Connect(function(i,gp)
+	if not gp and i.KeyCode == Enum.KeyCode.RightBracket then
+		Rayfield:Destroy()
+	end
+end)
