@@ -4,7 +4,7 @@ local Window = Rayfield:CreateWindow({
 	Name = "Universal Vehicle Script",
 	LoadingTitle = "Universal Vehicle Script",
 	LoadingSubtitle = "Loading User Interface...",
-	ConfigurationSaving = { Enabled = false },
+	ConfigurationSaving = { Enabled = true, FolderName = "UVSConfigs", FileName = "Default" },
 	KeySystem = false
 })
 
@@ -27,7 +27,7 @@ end
 local VehicleTab = Window:CreateTab("Vehicle", 4483362458)
 local SettingsTab = Window:CreateTab("Settings", 4483362458)
 
---// Settings
+--// Settings Toggles
 local velocityEnabled = true
 SettingsTab:CreateToggle({
 	Name = "Keybinds Active",
@@ -37,21 +37,51 @@ SettingsTab:CreateToggle({
 	end
 })
 
--- Minimise button
-SettingsTab:CreateButton({
-	Name = "-  Minimise",
-	Callback = function()
-		-- Save current position
-		local savedPosition = Window.Main.Position
-		Rayfield:ToggleUI()
-		-- Restore position after unhide
-		local connection
-		connection = RunService.RenderStepped:Connect(function()
-			if Window.Main.Visible then
-				Window.Main.Position = savedPosition
-				connection:Disconnect()
-			end
-		end)
+--// Config Management
+SettingsTab:CreateDropdown({
+	Name = "Load Config",
+	Options = Rayfield:GetConfigs(),
+	Callback = function(v)
+		Rayfield:LoadConfiguration(v)
+	end
+})
+
+SettingsTab:CreateTextBox({
+	Name = "Save Config As",
+	PlaceholderText = "Enter Config Name",
+	Callback = function(v)
+		if v ~= "" then
+			Rayfield:SaveConfiguration(v)
+		end
+	end
+})
+
+SettingsTab:CreateDropdown({
+	Name = "Delete Config",
+	Options = Rayfield:GetConfigs(),
+	Callback = function(v)
+		Rayfield:DeleteConfiguration(v)
+	end
+})
+
+--// Theme selection
+SettingsTab:CreateDropdown({
+	Name = "UI Theme",
+	Options = {"Default", "Dark", "Light", "Blue", "Red", "Green"},
+	Callback = function(v)
+		if v == "Default" then
+			Rayfield:ChangeTheme({Accent = Color3.fromRGB(255,170,0), Background = Color3.fromRGB(30,30,30)})
+		elseif v == "Dark" then
+			Rayfield:ChangeTheme({Accent = Color3.fromRGB(50,50,50), Background = Color3.fromRGB(15,15,15)})
+		elseif v == "Light" then
+			Rayfield:ChangeTheme({Accent = Color3.fromRGB(255,255,255), Background = Color3.fromRGB(230,230,230)})
+		elseif v == "Blue" then
+			Rayfield:ChangeTheme({Accent = Color3.fromRGB(0,120,255), Background = Color3.fromRGB(30,30,50)})
+		elseif v == "Red" then
+			Rayfield:ChangeTheme({Accent = Color3.fromRGB(255,50,50), Background = Color3.fromRGB(40,20,20)})
+		elseif v == "Green" then
+			Rayfield:ChangeTheme({Accent = Color3.fromRGB(0,255,0), Background = Color3.fromRGB(20,40,20)})
+		end
 	end
 })
 
